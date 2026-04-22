@@ -5,6 +5,7 @@ Loads and evaluates firewall + defence policy.
 import yaml
 import logging
 import os
+import copy
 from typing import Dict, Any
 from cyberwall.core.event_bus import ThreatEvent, ThreatLevel
 
@@ -15,9 +16,10 @@ DEFAULT_POLICY = {
         "default_input":   "drop",
         "default_forward": "drop",
         "default_output":  "accept",
+        "interface": "eth0",
         "allowed_inbound_ports": [22, 80, 443, 4222, 8080, 8443],
         "rate_limit": {
-            "ssh":   {"limit": "5/minute",  "burst": 10},
+            "ssh":   {"limit": "5/minute",   "burst": 10},
             "http":  {"limit": "100/minute", "burst": 200},
             "nats":  {"limit": "1000/minute","burst": 2000},
         },
@@ -51,7 +53,7 @@ DEFAULT_POLICY = {
 
 class PolicyEngine:
     def __init__(self, config_path: str = None):
-        self.policy = DEFAULT_POLICY.copy()
+        self.policy = copy.deepcopy(DEFAULT_POLICY)
         if config_path and os.path.exists(config_path):
             self._load(config_path)
 
@@ -68,23 +70,32 @@ class PolicyEngine:
             else:
                 base[k] = v
 
+    def _level(self, key: str) -> ThreatLevel:
+        """Safely resolve a policy level string to ThreatLevel enum."""
+        name = self.policy["response"].get(key, "HIGH")
+        try:
+            return ThreatLevel[name]
+        except KeyError:
+            return ThreatLevel.HIGH
+
     def should_block(self, event: ThreatEvent) -> bool:
-        threshold = self.policy["response"]["auto_block_level"]
-        return event.level >= ThreatLevel[threshold]
+        return event.level >= self._level("auto_block_level")
 
     def should_quarantine(self, event: ThreatEvent) -> bool:
-        threshold = self.policy["response"]["auto_quarantine_level"]
-        return event.level >= ThreatLevel[threshold]
+        return event.level >= self._level("auto_quarantine_level")
 
     def should_alert(self, event: ThreatEvent) -> bool:
-        threshold = self.policy["response"]["alert_level"]
-        return event.level >= ThreatLevel[threshold]
+        return event.level >= self._level("alert_level")
 
     def should_ai_analyze(self, event: ThreatEvent) -> bool:
         if not self.policy["ai"]["enabled"]:
             return False
-        threshold = self.policy["ai"]["analyze_level"]
-        return event.level >= ThreatLevel[threshold]
+        name = self.policy["ai"].get("analyze_level", "MEDIUM")
+        try:
+            threshold = ThreatLevel[name]
+        except KeyError:
+            threshold = ThreatLevel.MEDIUM
+        return event.level >= threshold
 
     def get(self, *keys, default=None) -> Any:
         node = self.policy
@@ -95,6 +106,6 @@ class PolicyEngine:
         return node
 
     def reload(self, config_path: str):
-        self.policy = DEFAULT_POLICY.copy()
+        self.policy = copy.deepcopy(DEFAULT_POLICY)
         self._load(config_path)
         logger.info("Policy hot-reloaded")
