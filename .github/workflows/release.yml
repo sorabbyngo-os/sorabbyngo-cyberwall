@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Tag release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install and test
+        run: |
+          pip install -r requirements.txt
+          python -m pytest tests/ -v
+
+      - name: Build release archive
+        run: |
+          tar --exclude='.git' \
+              --exclude='__pycache__' \
+              --exclude='*.pyc' \
+              --exclude='tests/' \
+              -czf sorabbyngo-cyberwall-${{ github.ref_name }}.tar.gz .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sorabbyngo-cyberwall-${{ github.ref_name }}.tar.gz
+          body: |
+            ## Sorabbyngo Cyberwall ${{ github.ref_name }}
+            AI-native firewall and malware defence layer for Sorabbyngo OS.
+
+            ### Components
+            - eBPF XDP kernel firewall
+            - Malware scanner + YARA engine
+            - Sentinel bridge (NATS)
+            - AI threat analyzer (phi4-mini)
+
+            ### Install
+```bash
+            tar -xzf sorabbyngo-cyberwall-${{ github.ref_name }}.tar.gz
+            sudo bash scripts/install.sh
+            sudo python3 cyberwall_daemon.py --config configs/cyberwall.yaml
+```

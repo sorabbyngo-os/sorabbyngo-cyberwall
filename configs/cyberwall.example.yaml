@@ -41,3 +41,6 @@ ai:
 
 nats:
   url: nats://localhost:4222
+
+nats:
+  url: nats://localhost:4222
