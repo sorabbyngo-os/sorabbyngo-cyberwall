@@ -101,3 +101,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     asyncio.run(main(config_path=args.config, monitor_only=args.monitor_only))
+
+# ── eBPF integration patch ────────────────────────────────────────────────────
+# Import and wire EBPFManager into the firewall engine at startup.
+# Add this to the main() function after FirewallEngine is created.
+#
+# from cyberwall.firewall.ebpf import EBPFManager
+# ebpf = EBPFManager(bus, policy)
+# ebpf.setup()
+# tasks.append(asyncio.create_task(ebpf.start(), name="ebpf"))
+#
+# This is intentionally a comment block — full integration
+# happens in the next daemon refactor (see ADR-002).
