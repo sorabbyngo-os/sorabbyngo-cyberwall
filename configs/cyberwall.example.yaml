@@ -1,0 +1,43 @@
+# Sorabbyngo Cyberwall — Configuration
+# Copy to cyberwall.yaml and edit for your deployment
+
+firewall:
+  default_input:   drop
+  default_forward: drop
+  default_output:  accept
+  allowed_inbound_ports: [22, 80, 443, 4222, 8080, 8443]
+  rate_limit:
+    ssh:  { limit: "5/minute",    burst: 10   }
+    http: { limit: "100/minute",  burst: 200  }
+    nats: { limit: "1000/minute", burst: 2000 }
+  blocked_ips: []
+
+malware:
+  watch_paths:
+    - /etc
+    - /bin
+    - /sbin
+    - /usr/bin
+    - /usr/sbin
+    - /lib/modules
+    - /opt/sorabbyngo
+    - /var/lib/sorabbyngo
+  quarantine_path: /var/lib/cyberwall/quarantine
+  scan_interval_seconds: 30
+  auto_quarantine_level: HIGH
+
+response:
+  auto_block_level:      HIGH
+  auto_quarantine_level: CRITICAL
+  alert_level:           LOW
+  notify_sentinel:       true
+  notify_cml:            true
+
+ai:
+  enabled:        true
+  model:          phi4-mini
+  ollama_url:     http://localhost:11434/api/generate
+  analyze_level:  MEDIUM
+
+nats:
+  url: nats://localhost:4222
