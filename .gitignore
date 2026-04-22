@@ -6,3 +6,4 @@ venv/
 configs/cyberwall.yaml
 /var/lib/cyberwall/
 *.log
+sorabbyngo-cyberwall/
