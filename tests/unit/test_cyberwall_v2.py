@@ -583,21 +583,24 @@ class TestMalwareScanner:
         f.write_text("original content\n")
         await scanner._build_baseline()
 
-        events = []
-        bus.subscribe("file_tamper", lambda e: events.append(e) or asyncio.coroutine(lambda: None)())
-
-        # Modify the file
-        f.write_text("tampered content\n")
-
-        # Collect events via direct bus subscription
         received = []
         async def collect(e):
             received.append(e)
-        bus.subscribe("file_tamper", collect)
+        bus.subscribe("*", collect)
+        bus_task = asyncio.create_task(bus.run())
 
+        f.write_text("tampered content\n")
         await scanner._scan_files()
-        await asyncio.sleep(0.05)
-        assert len(received) >= 1
+        await asyncio.sleep(0.3)
+
+        bus.stop()
+        bus_task.cancel()
+        try:
+            await bus_task
+        except asyncio.CancelledError:
+            pass
+
+        assert any(e.threat_type == "file_tamper" for e in received)
 
     @pytest.mark.asyncio
     async def test_new_file_detected(self, scanner, bus, tmp_dir):
@@ -607,13 +610,21 @@ class TestMalwareScanner:
         received = []
         async def collect(e):
             received.append(e)
-        bus.subscribe("file_tamper", collect)
+        bus.subscribe("*", collect)
+        bus_task = asyncio.create_task(bus.run())
 
-        # Drop a new file after baseline
         (watched / "new_file.sh").write_text("#!/bin/bash\n")
         await scanner._scan_new_files()
-        await asyncio.sleep(0.05)
-        assert len(received) >= 1
+        await asyncio.sleep(0.3)
+
+        bus.stop()
+        bus_task.cancel()
+        try:
+            await bus_task
+        except asyncio.CancelledError:
+            pass
+
+        assert any(e.threat_type == "file_tamper" for e in received)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -623,9 +634,15 @@ class TestMalwareScanner:
 class TestDeepScanner:
 
     @pytest.fixture
-    def deep_scanner(self, bus):
+    def deep_scanner(self, bus, tmp_dir):
         from cyberwall.malware.deep_scanner import DeepScanner
-        return DeepScanner(bus)
+        from cyberwall.malware.signatures.hash_db import HashDatabase
+        from cyberwall.malware.signatures.pattern_engine import PatternEngine
+        scanner = DeepScanner.__new__(DeepScanner)
+        scanner.bus     = bus
+        scanner.hash_db = HashDatabase(tmp_dir / "signatures.db")
+        scanner.pattern = PatternEngine()
+        return scanner
 
     @pytest.mark.asyncio
     async def test_scan_malicious_file(self, deep_scanner, bus, tmp_dir):
@@ -899,7 +916,12 @@ class TestIntegration:
         from cyberwall.malware.deep_scanner import DeepScanner
         from cyberwall.firewall.engine import FirewallEngine
 
-        deep    = DeepScanner(bus)
+        from cyberwall.malware.signatures.hash_db import HashDatabase
+        from cyberwall.malware.signatures.pattern_engine import PatternEngine
+        deep         = DeepScanner.__new__(DeepScanner)
+        deep.bus     = bus
+        deep.hash_db = HashDatabase(tmp_dir / "signatures.db")
+        deep.pattern = PatternEngine()
         scanner = MalwareScanner(bus, policy, deep_scanner=deep)
         fw      = FirewallEngine(bus, policy)
 
