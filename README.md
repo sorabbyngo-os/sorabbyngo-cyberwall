@@ -1,107 +1,71 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/sorabbyngo-Labs/.github/main/assets/sorabbyngo-logo.jpg" alt="Sorabbyngo" width="480"/>
-</p>
-<p align="center">
-  <strong>Sorabbyngo Cyberwall — AI-native firewall and malware defence layer</strong>
-</p>
-<p align="center">
-  Offline-first · Kernel-integrated · NATS-native · Africa-hardened
-</p>
+# sorabbyngo-build
+> **SORABBYNGO OS** — Build system, architecture decisions, and engineering roadmap
+> *Rhythm of Digital Life* · Sorabbyngo Labs · Kisii, Kenya
 
----
+## What is this repo?
+This repository contains the master architecture decisions, phase plans, build system, and engineering roadmap for SORABBYNGO OS.
 
-## What this is
+## Structure
+```
+docs/
+├── decisions/          # Architecture decision records (ADRs)
+│   ├── ADR-001-boot-target.md
+│   ├── ADR-002-novela-deployment.md
+│   └── ADR-003-ai-offline-strategy.md
+├── phases/             # Build phases
+│   ├── PHASE-1-kernel.md
+│   ├── PHASE-2-rootfs.md
+│   ├── PHASE-3-init.md
+│   ├── PHASE-4-ai-runtime.md
+│   ├── PHASE-5-iso-builder.md
+│   └── PHASE-6-installer.md
+└── architecture/       # System architecture
+    └── SYSTEM-OVERVIEW.md
+```
 
-Sorabbyngo Cyberwall is the active defence layer of SORABBYNGO OS. It runs as a
-daemon on every OS variant — byngo-os, novela-os, edge-os, server-os — and
-provides real-time firewall enforcement, malware detection, process integrity
-monitoring, and AI-assisted threat analysis. All intelligence stays on-device.
-
----
-
-## Architecture
-┌─────────────────────────────────────────────────────────────┐
-│                    sorabbyngo-cyberwall                      │
-│                                                             │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌────────────┐  │
-│  │  firewall       │  │  malware        │  │ sentinel   │  │
-│  │  engine         │  │  scanner        │  │ bridge     │  │
-│  │                 │  │                 │  │            │  │
-│  │  nftables rules │  │  process mon    │  │ NATS pub   │  │
-│  │  eBPF hooks     │  │  file integrity │  │ alerts     │  │
-│  │  rate limiting  │  │  syscall watch  │  │ CML feed   │  │
-│  │  geo-blocking   │  │  quarantine     │  │ NodeID sig │  │
-│  └────────┬────────┘  └────────┬────────┘  └─────┬──────┘  │
-│           └───────────────────┴─────────────────┘          │
-│                         core engine                         │
-│           threat scoring · policy engine · event bus        │
-│           AI anomaly detection (phi4-mini via Ollama)       │
-└─────────────────────────────────────────────────────────────┘
----
-
-## Components
-
-| Component | Purpose |
-|---|---|
-| `cyberwall/core/` | Event bus, threat scoring, policy engine |
-| `cyberwall/firewall/` | nftables manager, eBPF hooks, rate limiter |
-| `cyberwall/malware/` | Process monitor, file integrity, syscall watcher, quarantine |
-| `cyberwall/sentinel_bridge/` | NATS publisher, CML integration, alert router |
-| `cyberwall/ai/` | Ollama-based anomaly analysis (phi4-mini) |
-| `cyberwall/policy/` | Policy loader, rule evaluator |
-| `nats/` | NATS subject config for cyberwall |
-| `configs/` | Per-variant configs (novela, edge, server, byngo) |
-| `scripts/` | Install, start, stop helpers |
-
----
-
-## NATS Subjects
-
-| Subject | Direction | Description |
+## Phase Status
+| Phase | Description | Status |
 |---|---|---|
-| `sorabbyngo.cyberwall.alert` | Publish | Threat alert to sentinel |
-| `sorabbyngo.cyberwall.block` | Publish | IP/process block event |
-| `sorabbyngo.cyberwall.status` | Publish | Heartbeat and health |
-| `sorabbyngo.cyberwall.policy.reload` | Subscribe | Hot-reload policy |
-| `sorabbyngo.cml.filter.request` | Publish | CML safety check |
+| 1 | Custom kernel (Linux 6.19.10) | ✅ Complete |
+| 2 | Root filesystem (Buildroot) | 🔜 Next |
+| 3 | Init system (systemd) | 🔜 Planned |
+| 4 | AI runtime layer | 🔜 Planned |
+| 5 | ISO/image builder | 🔜 Planned |
+| 6 | Installer | 🔜 Planned |
 
----
+## Core Architecture Decisions
+- Boot → Graphical Chameha (TTY hidden fallback)
+- Novela → Core runs on-device + optional remote backend
+- AI → Offline-first, tiered intelligence (local → enhanced → cloud)
 
-## Quick Start
+© 2026 Sorabbyngo Company. All rights reserved.
 
-```bash
-Install dependencies
-sudo apt-get install -y nftables python3 python3-pip
-pip install nats-py watchdog psutil pyyaml cryptography --break-system-packagesConfigure
-cp configs/cyberwall.example.yaml configs/cyberwall.yamlStart (requires root for nftables + eBPF)
-sudo python3 cyberwall_daemon.py --config configs/cyberwall.yaml
+## OS Surfaces (ADR-004)
 
----
+All OS surfaces share the Sorabbyngo AI Kernel as root base.
 
-## Threat Levels
+| OS Surface | Target | Key Requirement | Status |
+|---|---|---|---|
+| Sorabbyngo OS | Base / development | Current build target | 🔧 In development |
+| Novela OS | Medical / clinical | PREEMPT_RT real-time | 🔜 Planned |
+| Byngo OS | Consumer devices | Android compatibility | 🔜 Planned |
+| Edge OS | IoT / drones / vehicles | Minimal footprint | 🔜 Planned |
+| Sentinel OS | Cybersecurity ops | Hardened kernel | 🔜 Planned |
+| Server OS | Infrastructure | High throughput | 🔜 Planned |
 
-| Level | Score | Action |
-|---|---|---|
-| INFO | 0–2 | Log only |
-| LOW | 3–4 | Alert via NATS |
-| MEDIUM | 5–6 | Alert + rate limit |
-| HIGH | 7–8 | Block + alert + CML |
-| CRITICAL | 9–10 | Block + quarantine + emergency alert |
+See [ADR-004](docs/decisions/ADR-004-kernel-ecosystem-strategy.md) for full rationale.
 
----
+## OS Surfaces (ADR-004)
 
-## Part of SORABBYNGO OS
+All OS surfaces share the Sorabbyngo AI Kernel as root base.
 
-| Repo | Role |
-|---|---|
-| [sorabbyngo-os](https://github.com/sorabbyngo-Labs/sorabbyngo-os) | Kernel source |
-| [sentinel-os](https://github.com/sorabbyngo-Labs/sentinel-os) | Security operations OS |
-| [security](https://github.com/sorabbyngo-Labs/security) | 7-ring defence architecture |
-| [dmz](https://github.com/sorabbyngo-Labs/dmz) | One-way wall — PRIME isolation |
-| [cml](https://github.com/sorabbyngo-Labs/cml) | Safety and audit layer |
-| [byngonet](https://github.com/sorabbyngo-Labs/byngonet) | Secure mesh protocol |
+| OS Surface | Target | Key Requirement | Status |
+|---|---|---|---|
+| Sorabbyngo OS | Base / development | Current build target | 🔧 In development |
+| Novela OS | Medical / clinical | PREEMPT_RT real-time | 🔜 Planned |
+| Byngo OS | Consumer devices | Android compatibility | 🔜 Planned |
+| Edge OS | IoT / drones / vehicles | Minimal footprint | 🔜 Planned |
+| Sentinel OS | Cybersecurity ops | Hardened kernel | 🔜 Planned |
+| Server OS | Infrastructure | High throughput | 🔜 Planned |
 
----
-
-**Sorabbyngo Company** · Kisii, Kenya · 2026
-*Rhythm of Digital Life*
+See [ADR-004](docs/decisions/ADR-004-kernel-ecosystem-strategy.md) for full rationale.
