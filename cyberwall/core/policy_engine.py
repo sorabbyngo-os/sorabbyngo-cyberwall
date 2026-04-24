@@ -1,27 +1,36 @@
 """
-Sorabbyngo Cyberwall — Policy Engine
-Loads and evaluates firewall + defence policy.
+Sorabbyngo Cyberwall — Policy Engine  (patched v2)
+
+Patches over v1:
+  - Atomic reload — no bare-default window during hot-reload
+  - Schema validation — catches malformed YAML before applying
+  - Required-section guard raises on startup if config is corrupt
+  - _load() split into _load_into() for reuse in atomic reload
 """
-import yaml
+import copy
 import logging
 import os
-import copy
-from typing import Dict, Any
+from typing import Any
+
+import yaml
+
 from cyberwall.core.event_bus import ThreatEvent, ThreatLevel
 
 logger = logging.getLogger("cyberwall.core.policy_engine")
 
-DEFAULT_POLICY = {
+REQUIRED_SECTIONS = ["firewall", "malware", "response", "ai"]
+
+DEFAULT_POLICY: dict = {
     "firewall": {
-        "default_input":   "drop",
-        "default_forward": "drop",
-        "default_output":  "accept",
-        "interface": "eth0",
-        "allowed_inbound_ports": [22, 80, 443, 4222, 8080, 8443],
+        "default_input":          "drop",
+        "default_forward":        "drop",
+        "default_output":         "accept",
+        "interface":              "eth0",
+        "allowed_inbound_ports":  [22, 80, 443, 4222, 8080, 8443],
         "rate_limit": {
-            "ssh":   {"limit": "5/minute",   "burst": 10},
-            "http":  {"limit": "100/minute", "burst": 200},
-            "nats":  {"limit": "1000/minute","burst": 2000},
+            "ssh":  {"limit": "5/minute",    "burst": 10},
+            "http": {"limit": "100/minute",  "burst": 200},
+            "nats": {"limit": "1000/minute", "burst": 2000},
         },
         "blocked_ips": [],
         "geo_block":   [],
@@ -31,9 +40,9 @@ DEFAULT_POLICY = {
             "/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin",
             "/lib/modules", "/opt/sorabbyngo", "/var/lib/sorabbyngo",
         ],
-        "quarantine_path": "/var/lib/cyberwall/quarantine",
-        "scan_interval_seconds": 30,
-        "auto_quarantine_level": "HIGH",
+        "quarantine_path":        "/var/lib/cyberwall/quarantine",
+        "scan_interval_seconds":  30,
+        "auto_quarantine_level":  "HIGH",
     },
     "response": {
         "auto_block_level":      "HIGH",
@@ -43,24 +52,37 @@ DEFAULT_POLICY = {
         "notify_cml":            True,
     },
     "ai": {
-        "enabled": True,
-        "model":   "phi4-mini",
-        "ollama_url": "http://localhost:11434/api/generate",
+        "enabled":       True,
+        "model":         "phi4-mini",
+        "ollama_url":    "http://localhost:11434/api/generate",
         "analyze_level": "MEDIUM",
+    },
+    "nats": {
+        "url": "nats://localhost:4222",
     },
 }
 
 
-class PolicyEngine:
-    def __init__(self, config_path: str = None):
-        self.policy = copy.deepcopy(DEFAULT_POLICY)
-        if config_path and os.path.exists(config_path):
-            self._load(config_path)
+class PolicyValidationError(ValueError):
+    pass
 
-    def _load(self, path: str):
+
+class PolicyEngine:
+    def __init__(self, config_path: str | None = None):
+        self.policy = copy.deepcopy(DEFAULT_POLICY)
+        self._config_path = config_path
+        if config_path and os.path.exists(config_path):
+            self._load_into(self.policy, config_path)
+        self._validate(self.policy)
+
+    # ── Load ───────────────────────────────────────────────────────────────────
+
+    def _load_into(self, target: dict, path: str):
+        """Load YAML from path and deep-merge into target dict."""
         with open(path) as f:
             override = yaml.safe_load(f)
-        self._deep_merge(self.policy, override or {})
+        if override:
+            self._deep_merge(target, override)
         logger.info(f"Policy loaded from {path}")
 
     def _deep_merge(self, base: dict, override: dict):
@@ -70,8 +92,48 @@ class PolicyEngine:
             else:
                 base[k] = v
 
+    # ── Validate ───────────────────────────────────────────────────────────────
+
+    def _validate(self, policy: dict):
+        for section in REQUIRED_SECTIONS:
+            if section not in policy:
+                raise PolicyValidationError(
+                    f"Policy missing required section: '{section}'"
+                )
+        # Type checks on critical keys
+        ports = policy["firewall"].get("allowed_inbound_ports", [])
+        if not isinstance(ports, list):
+            raise PolicyValidationError("firewall.allowed_inbound_ports must be a list")
+
+        for level_key in ("auto_block_level", "auto_quarantine_level", "alert_level"):
+            val = policy["response"].get(level_key)
+            if val and val not in ThreatLevel.__members__:
+                raise PolicyValidationError(
+                    f"response.{level_key} invalid value: '{val}'. "
+                    f"Must be one of {list(ThreatLevel.__members__)}"
+                )
+
+    # ── Reload (atomic) ───────────────────────────────────────────────────────
+
+    def reload(self, config_path: str | None = None):
+        """
+        Hot-reload policy atomically.
+        If validation fails the live policy is unchanged.
+        """
+        path = config_path or self._config_path
+        if not path:
+            logger.warning("reload() called with no config path — skipping")
+            return
+
+        tmp = copy.deepcopy(DEFAULT_POLICY)
+        self._load_into(tmp, path)
+        self._validate(tmp)      # validate before swap
+        self.policy = tmp        # atomic swap
+        logger.info("Policy hot-reloaded (atomic)")
+
+    # ── Query helpers ──────────────────────────────────────────────────────────
+
     def _level(self, key: str) -> ThreatLevel:
-        """Safely resolve a policy level string to ThreatLevel enum."""
         name = self.policy["response"].get(key, "HIGH")
         try:
             return ThreatLevel[name]
@@ -97,15 +159,12 @@ class PolicyEngine:
             threshold = ThreatLevel.MEDIUM
         return event.level >= threshold
 
-    def get(self, *keys, default=None) -> Any:
+    def get(self, *keys, default: Any = None) -> Any:
         node = self.policy
         for k in keys:
             if not isinstance(node, dict):
                 return default
             node = node.get(k, default)
+            if node is None:
+                return default
         return node
-
-    def reload(self, config_path: str):
-        self.policy = copy.deepcopy(DEFAULT_POLICY)
-        self._load(config_path)
-        logger.info("Policy hot-reloaded")

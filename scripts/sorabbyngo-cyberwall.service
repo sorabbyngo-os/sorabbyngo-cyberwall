@@ -1,0 +1,62 @@
+[Unit]
+Description=Sorabbyngo Cyberwall — AI-native Firewall & Malware Defence
+Documentation=https://github.com/sorabbyngo-Labs/sorabbyngo-cyberwall
+After=network.target nats.service ollama.service
+Wants=nats.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Binary + config
+ExecStart=/usr/bin/python3 /opt/sorabbyngo/cyberwall/cyberwall_daemon.py \
+          --config /etc/sorabbyngo/cyberwall.yaml
+
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cyberwall
+
+# Runtime directories
+RuntimeDirectory=sorabbyngo
+StateDirectory=sorabbyngo
+LogsDirectory=sorabbyngo
+
+# Capabilities — only what we need, not full root
+# CAP_NET_ADMIN  — nftables rule management
+# CAP_NET_RAW    — eBPF XDP socket
+# CAP_SYS_PTRACE — /proc inspection for syscall watcher
+# CAP_DAC_READ_SEARCH — read protected files for integrity check
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/log/sorabbyngo /var/lib/cyberwall /var/lib/sorabbyngo /tmp
+PrivateTmp=yes
+ProtectKernelTunables=no
+ProtectKernelModules=no
+ProtectControlGroups=no
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=512
+MemoryMax=512M
+CPUQuota=80%
+
+# Watchdog — systemd restarts if daemon hangs
+WatchdogSec=60s
+
+[Install]
+WantedBy=multi-user.target
