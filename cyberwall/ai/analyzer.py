@@ -89,9 +89,31 @@ class AIAnalyzer:
             response = await loop.run_in_executor(None, self._http_post, req)
             text = json.loads(response).get("response", "").strip()
             return json.loads(text)
+        except urllib.error.URLError as e:
+            logger.warning(f"Ollama unreachable ({e}) — using rule-based fallback")
+            return self._rule_based_fallback(event)
         except Exception as e:
             logger.debug(f"AI analysis failed: {e}")
-            return {}
+            return self._rule_based_fallback(event)
+
+    def _rule_based_fallback(self, event) -> dict:
+        """Offline fallback when Ollama is unavailable."""
+        score = getattr(event, "score", 5.0)
+        severity = (
+            "CRITICAL" if score >= 9 else
+            "HIGH"     if score >= 7 else
+            "MEDIUM"   if score >= 5 else
+            "LOW"      if score >= 3 else
+            "INFO"
+        )
+        return {
+            "severity":                  severity,
+            "summary":                   f"Rule-based: {event.threat_type} detected",
+            "attack_vector":             event.threat_type,
+            "recommended_action":        "block" if score >= 7 else "monitor",
+            "false_positive_probability": 0.2,
+            "source":                    "rule_based_fallback",
+        }
 
     def _http_post(self, req) -> str:
         with urllib.request.urlopen(req, timeout=20) as r:

@@ -69,8 +69,20 @@ class EBPFLoader:
         except Exception:
             return False
 
-    def unblock_ip(self, ip: str):
-        pass
+    def unblock_ip(self, ip: str) -> bool:
+        if not self._loaded or not self._bpf:
+            return False
+        try:
+            import ctypes
+            key = self._bpf["blocked_ips"].Key()
+            key.prefixlen = 32
+            key.addr = struct.unpack("=I", socket.inet_aton(ip))[0]
+            self._bpf["blocked_ips"].__delitem__(key)
+            logger.info(f"eBPF: unblocked {ip}")
+            return True
+        except Exception as e:
+            logger.warning(f"eBPF unblock failed for {ip}: {e}")
+            return False
 
     def get_stats(self) -> dict:
         return dict(self._stats)
