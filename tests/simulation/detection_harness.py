@@ -136,9 +136,26 @@ class DetectionHarness:
         logger.info("Mock cyberwall components started")
 
     async def run_all(self, scenarios: list[str]) -> list[DetectionResult]:
+        import shutil as _sh
         results = []
 
         for name in scenarios:
+            # Skip network/kernel-only scenarios in mock mode
+            if self.mock and name in NETWORK_ONLY_SCENARIOS:
+                logger.info(f"[SKIP] {name} — requires kernel/network (mock mode)")
+                results.append(DetectionResult(
+                    scenario=name,
+                    sim_result=SimResult(name, True, "skipped", "network-only", 0),
+                    expected=EXPECTED_DETECTIONS.get(name, []),
+                    detected=["SKIPPED"],
+                ))
+                continue
+
+            # Clear sandbox so detections don't bleed between scenarios
+            if SANDBOX_DIR.exists():
+                _sh.rmtree(SANDBOX_DIR, ignore_errors=True)
+            SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
+
             logger.info(f"\n{'='*60}")
             logger.info(f"HARNESS: {name}")
             logger.info(f"{'='*60}")
@@ -150,7 +167,7 @@ class DetectionHarness:
             sim_results = await run_scenarios([name], delay=0)
             sim = sim_results[0] if sim_results else SimResult(name, False, "", "", 0)
 
-            # Wait for detections (scan the sandbox files immediately)
+            # Scan sandbox files immediately
             if self.mock and hasattr(self, '_deep_scanner'):
                 await self._scan_sandbox_for_scenario(name)
 
