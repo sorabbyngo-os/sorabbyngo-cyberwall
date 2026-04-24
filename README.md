@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/sorabbyngo-Labs/.github/main/assets/sorabbyngo-logo.jpg" alt="Sorabbyngo" width="400"/>
+  <img src="./assets/banner.svg" alt="Sorabbyngo Cyberwall" width="800"/>
 </p>
 
 <p align="center">

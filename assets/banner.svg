@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
+  <rect width="800" height="200" fill="#080808"/>
+  
+  <!-- Scanlines -->
+  <rect width="800" height="200" fill="url(#scan)" opacity="0.15"/>
+  <defs>
+    <pattern id="scan" x="0" y="0" width="800" height="4" patternUnits="userSpaceOnUse">
+      <rect width="800" height="2" fill="#000" opacity="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Glitch offset layers — red -->
+  <text x="403" y="75" font-family="monospace" font-size="52" font-weight="bold" fill="#ff0000" opacity="0.4" letter-spacing="6">S0R4BBYNGO</text>
+  <text x="397" y="73" font-family="monospace" font-size="52" font-weight="bold" fill="#00ffff" opacity="0.15" letter-spacing="6">S0R4BBYNGO</text>
+
+  <!-- Main title -->
+  <text x="400" y="74" font-family="monospace" font-size="52" font-weight="bold" fill="#cc0000" text-anchor="middle" letter-spacing="6">S0R4BBYNGO</text>
+
+  <!-- Glitch offset layers — subtitle -->
+  <text x="402" y="125" font-family="monospace" font-size="38" font-weight="bold" fill="#ff0000" opacity="0.4" letter-spacing="10">CYBERWALL</text>
+  <text x="398" y="123" font-family="monospace" font-size="38" font-weight="bold" fill="#00ffff" opacity="0.15" letter-spacing="10">CYBERWALL</text>
+
+  <!-- Main subtitle -->
+  <text x="400" y="124" font-family="monospace" font-size="38" font-weight="bold" fill="#ff2222" text-anchor="middle" letter-spacing="10">CYBERWALL</text>
+
+  <!-- Corrupted noise chars -->
+  <text x="42" y="74" font-family="monospace" font-size="52" fill="#ff0000" opacity="0.6">|</text>
+  <text x="755" y="74" font-family="monospace" font-size="52" fill="#ff0000" opacity="0.4">|</text>
+  <text x="18" y="124" font-family="monospace" font-size="38" fill="#880000" opacity="0.7">█</text>
+  <text x="770" y="124" font-family="monospace" font-size="38" fill="#880000" opacity="0.5">█</text>
+
+  <!-- Glitch slice bars -->
+  <rect x="0" y="58" width="800" height="3" fill="#ff0000" opacity="0.07"/>
+  <rect x="0" y="108" width="800" height="2" fill="#ff0000" opacity="0.05"/>
+  <rect x="120" y="62" width="180" height="8" fill="#ff0000" opacity="0.06"/>
+  <rect x="500" y="115" width="140" height="6" fill="#ff0000" opacity="0.08"/>
+
+  <!-- Tagline -->
+  <text x="400" y="168" font-family="monospace" font-size="11" fill="#660000" text-anchor="middle" letter-spacing="4">AI-NATIVE FIREWALL · MALWARE DEFENCE · OFFLINE-FIRST · AFRICA-HARDENED</text>
+
+  <!-- Corner brackets -->
+  <text x="10" y="20" font-family="monospace" font-size="14" fill="#440000">┌─</text>
+  <text x="770" y="20" font-family="monospace" font-size="14" fill="#440000">─┐</text>
+  <text x="10" y="195" font-family="monospace" font-size="14" fill="#440000">└─</text>
+  <text x="770" y="195" font-family="monospace" font-size="14" fill="#440000">─┘</text>
+</svg>
