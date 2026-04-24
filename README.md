@@ -1,71 +1,117 @@
-# sorabbyngo-build
-> **SORABBYNGO OS** — Build system, architecture decisions, and engineering roadmap
-> *Rhythm of Digital Life* · Sorabbyngo Labs · Kisii, Kenya
+<div align="center">
 
-## What is this repo?
-This repository contains the master architecture decisions, phase plans, build system, and engineering roadmap for SORABBYNGO OS.
+<br/>
 
-## Structure
 ```
-docs/
-├── decisions/          # Architecture decision records (ADRs)
-│   ├── ADR-001-boot-target.md
-│   ├── ADR-002-novela-deployment.md
-│   └── ADR-003-ai-offline-strategy.md
-├── phases/             # Build phases
-│   ├── PHASE-1-kernel.md
-│   ├── PHASE-2-rootfs.md
-│   ├── PHASE-3-init.md
-│   ├── PHASE-4-ai-runtime.md
-│   ├── PHASE-5-iso-builder.md
-│   └── PHASE-6-installer.md
-└── architecture/       # System architecture
-    └── SYSTEM-OVERVIEW.md
+███████╗ ██████╗ ██████╗  █████╗ ██████╗ ██████╗ ██╗   ██╗███╗   ██╗ ██████╗  ██████╗
+██╔════╝██╔═══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝████╗  ██║██╔════╝ ██╔═══██╗
+███████╗██║   ██║██████╔╝███████║██████╔╝██████╔╝ ╚████╔╝ ██╔██╗ ██║██║  ███╗██║   ██║
+╚════██║██║   ██║██╔══██╗██╔══██║██╔══██╗██╔══██╗  ╚██╔╝  ██║╚██╗██║██║   ██║██║   ██║
+███████║╚██████╔╝██║  ██║██║  ██║██████╔╝██████╔╝   ██║   ██║ ╚████║╚██████╔╝╚██████╔╝
+╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═════╝    ╚═╝   ╚═╝  ╚═══╝ ╚═════╝  ╚═════╝
 ```
 
-## Phase Status
-| Phase | Description | Status |
-|---|---|---|
-| 1 | Custom kernel (Linux 6.19.10) | ✅ Complete |
-| 2 | Root filesystem (Buildroot) | 🔜 Next |
-| 3 | Init system (systemd) | 🔜 Planned |
-| 4 | AI runtime layer | 🔜 Planned |
-| 5 | ISO/image builder | 🔜 Planned |
-| 6 | Installer | 🔜 Planned |
+### **RHYTHM OF DIGITAL LIFE**
 
-## Core Architecture Decisions
-- Boot → Graphical Chameha (TTY hidden fallback)
-- Novela → Core runs on-device + optional remote backend
-- AI → Offline-first, tiered intelligence (local → enhanced → cloud)
+*Africa-First · AI-Native · Sovereign Computing*
 
-© 2026 Sorabbyngo Company. All rights reserved.
+<br/>
 
-## OS Surfaces (ADR-004)
+[![Organization](https://img.shields.io/badge/org-sorabbyngo--LTD-gold?style=for-the-badge&labelColor=0a0a0a)](https://github.com/sorabbyngo-LTD)
+[![Status](https://img.shields.io/badge/status-active%20development-brightgreen?style=for-the-badge&labelColor=0a0a0a)](https://github.com/sorabbyngo-LTD)
+[![Origin](https://img.shields.io/badge/origin-Nairobi%2C%20Kenya-blue?style=for-the-badge&labelColor=0a0a0a)](https://github.com/sorabbyngo-LTD)
 
-All OS surfaces share the Sorabbyngo AI Kernel as root base.
+</div>
 
-| OS Surface | Target | Key Requirement | Status |
-|---|---|---|---|
-| Sorabbyngo OS | Base / development | Current build target | 🔧 In development |
-| Novela OS | Medical / clinical | PREEMPT_RT real-time | 🔜 Planned |
-| Byngo OS | Consumer devices | Android compatibility | 🔜 Planned |
-| Edge OS | IoT / drones / vehicles | Minimal footprint | 🔜 Planned |
-| Sentinel OS | Cybersecurity ops | Hardened kernel | 🔜 Planned |
-| Server OS | Infrastructure | High throughput | 🔜 Planned |
+---
 
-See [ADR-004](docs/decisions/ADR-004-kernel-ecosystem-strategy.md) for full rationale.
+## What We're Building
 
-## OS Surfaces (ADR-004)
+**SORABBYNGO** is an Africa-first AI operating system ecosystem — built from the kernel up.
 
-All OS surfaces share the Sorabbyngo AI Kernel as root base.
+We're not adapting foreign infrastructure for Africa. We're building the computing layer Africa deserves — sovereign, intelligent, and designed for the continent's rhythm.
 
-| OS Surface | Target | Key Requirement | Status |
-|---|---|---|---|
-| Sorabbyngo OS | Base / development | Current build target | 🔧 In development |
-| Novela OS | Medical / clinical | PREEMPT_RT real-time | 🔜 Planned |
-| Byngo OS | Consumer devices | Android compatibility | 🔜 Planned |
-| Edge OS | IoT / drones / vehicles | Minimal footprint | 🔜 Planned |
-| Sentinel OS | Cybersecurity ops | Hardened kernel | 🔜 Planned |
-| Server OS | Infrastructure | High throughput | 🔜 Planned |
+The ecosystem spans six interconnected layers:
 
-See [ADR-004](docs/decisions/ADR-004-kernel-ecosystem-strategy.md) for full rationale.
+| Component | Description |
+|---|---|
+| **SORABBYNGO OS** | Custom Linux kernel — the foundation. Built on Linux 6.12 LTS. |
+| **Byngox** | Swarm reasoning AI engine. Multi-agent intelligence at the core. |
+| **Byngonet** | Distributed mesh network. Connectivity built for African infrastructure realities. |
+| **Chameha** | AI personality and interface layer. Warm, human, context-aware. |
+| **CML** | Cognitive Mediation Layer. Safety and alignment between AI agents and users. |
+| **Novela** | AI health platform. Starting with counterfeit medication detection. Africa's health, protected. |
+
+---
+
+## Architecture Philosophy
+
+> *"We don't port. We build."*
+
+Every layer in the SORABBYNGO stack is designed with three non-negotiables:
+
+- **Sovereignty** — African data stays on African-controlled infrastructure
+- **Intelligence** — AI isn't a feature; it's the operating principle
+- **Resilience** — Built for environments where connectivity, power, and trust cannot be assumed
+
+---
+
+## Current Focus
+
+- 🔧 **SORABBYNGO OS** — Kernel compilation and boot sequence (Linux 6.12 LTS fork, Kali bare metal)
+- 🏥 **Novela** — MVP build targeting counterfeit medication detection in East Africa
+- 🌐 **Byngonet** — Architecture design for four-layer mesh protocol
+
+---
+
+## The Stack
+
+```
+Hardware Tier
+     │
+     ▼
+SORABBYNGO OS  ←  Custom Linux Kernel (6.12 LTS)
+     │
+     ▼
+Byngonet       ←  Mesh Networking Layer
+     │
+     ▼
+CML            ←  Cognitive Mediation Layer (Safety + Alignment)
+     │
+     ▼
+Byngox         ←  Swarm Reasoning Engine
+     │
+     ▼
+Chameha        ←  AI Interface + Personality Layer
+     │
+     ▼
+Novela         ←  Health Platform (User-Facing)
+```
+
+---
+
+## For Engineers
+
+We build with intention. If you're here, you care about:
+
+- Systems that work at the edge, not just the cloud
+- AI that respects the user's context and language
+- Technology that creates sovereignty, not dependency
+
+Contribution guidelines and dev environment setup coming soon. Watch this space.
+
+---
+
+## Contact
+
+📧 [sorabbyngoltd@gmail.com](mailto:sorabbyngoltd@gmail.com)
+🌍 Nairobi, Kenya
+
+<div align="center">
+<br/>
+
+*Building the digital infrastructure Africa will run on.*
+
+**SORABBYNGO LTD** · Est. 2024
+
+</div>
