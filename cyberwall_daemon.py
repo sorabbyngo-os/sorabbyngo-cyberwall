@@ -239,8 +239,11 @@ async def main(
         logger.info("Shutdown signal received")
         ebpf.stop()
         status_reporter.stop()
-        for t in tasks:
-            t.cancel()
+        async def _graceful_stop():
+            await sentinel_bridge.stop()
+            for t in tasks:
+                t.cancel()
+        asyncio.ensure_future(_graceful_stop())
 
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, _shutdown)
@@ -253,7 +256,6 @@ async def main(
     try:
         await asyncio.gather(*tasks, return_exceptions=True)
     finally:
-        await sentinel_bridge.stop()
         ebpf.stop()
         logger.info("Cyberwall stopped.")
 

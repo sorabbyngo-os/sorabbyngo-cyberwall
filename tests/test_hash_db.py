@@ -14,7 +14,9 @@ CLEAN_HASH         = "0" * 64
 @pytest.fixture
 def db():
     with tempfile.TemporaryDirectory() as d:
-        yield HashDatabase(db_path=Path(d) / "test_signatures.db")
+        db = HashDatabase(db_path=Path(d) / "test_signatures.db")
+        yield db
+        db.close()
 
 
 def test_lookup_known_malware(db):
