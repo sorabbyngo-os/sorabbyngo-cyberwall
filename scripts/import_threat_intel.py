@@ -145,14 +145,29 @@ class DB:
 
 def import_africa(db):
     log.info("Importing Africa-curated list...")
+    # Load from JSONL file (canonical source) — fallback to hardcoded list
+    jsonl = Path(__file__).parent.parent /             "cyberwall/malware/signatures/builtin_hashes.jsonl"
     n = 0
-    for e in AFRICA_CURATED:
-        if db.add(e["sha256"], e["name"], e.get("family",""),
-                  e.get("threat_type","malware"), e.get("severity","HIGH"),
-                  "sorabbyngo-africa-curated", e.get("notes","")):
-            n += 1
-            log.info(f"  + {e['name']}")
-    log.info(f"Africa-curated: {n} imported")
+    if jsonl.exists():
+        with open(jsonl) as f:
+            for line in f:
+                line = line.strip()
+                if not line: continue
+                import json as _json
+                e = _json.loads(line)
+                if db.add(e["sha256"], e["name"], e.get("family",""),
+                          e.get("threat_type","malware"), e.get("severity","HIGH"),
+                          e.get("source","sorabbyngo-builtin"), e.get("notes","")):
+                    n += 1
+        log.info(f"Africa-curated: {n} imported from {jsonl}")
+    else:
+        for e in AFRICA_CURATED:
+            if db.add(e["sha256"], e["name"], e.get("family",""),
+                      e.get("threat_type","malware"), e.get("severity","HIGH"),
+                      "sorabbyngo-africa-curated", e.get("notes","")):
+                n += 1
+                log.info(f"  + {e['name']}")
+        log.info(f"Africa-curated: {n} imported from hardcoded list")
     return n
 
 
