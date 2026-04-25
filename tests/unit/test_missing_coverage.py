@@ -302,10 +302,15 @@ class TestSentinelBridgeNATS:
             b = SentinelBridge(bus, policy, nats_url="nats://localhost:4222")
         return b
 
-    def test_node_id_from_env(self, bridge):
-        with patch.dict(os.environ, {"SORABBYNGO_NODE_ID": "test-node-123"}):
-            node_id = bridge._read_node_id()
-        assert node_id == "test-node-123"
+    def test_node_id_from_env(self):
+        from cyberwall.core.event_bus import EventBus
+        from cyberwall.core.policy_engine import PolicyEngine
+        from cyberwall.sentinel_bridge.bridge import SentinelBridge
+        bus = EventBus()
+        policy = PolicyEngine()
+        with patch.dict(os.environ, {"SORABBYNGO_NODE_ID": "test-node-123"}),              patch("builtins.open", side_effect=FileNotFoundError):
+            b = SentinelBridge(bus, policy, nats_url="nats://localhost:4222")
+            assert b._node_id == "test-node-123"
 
     async def test_publish_logs_when_no_nats(self, bridge, make_event):
         bridge._nc = None
