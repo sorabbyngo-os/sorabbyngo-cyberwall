@@ -50,6 +50,7 @@ from cyberwall.malware.syscall_watcher import SyscallWatcher
 from cyberwall.malware.deep_scanner import DeepScanner
 from cyberwall.sentinel_bridge.bridge import SentinelBridge
 from cyberwall.ai.analyzer import AIAnalyzer
+from cyberwall.dashboard.server import DashboardServer
 
 BANNER = """
 ╔══════════════════════════════════════════════════════════╗
@@ -217,6 +218,13 @@ async def main(
     bus.subscribe("file_tamper", _on_file_tamper)
 
     # ── Tasks ─────────────────────────────────────────────────────────────────
+    # Dashboard
+    if not args.no_dashboard:
+        dashboard = DashboardServer(bus, port=args.dashboard_port)
+        logger.info(f"Dashboard: http://localhost:{args.dashboard_port}")
+    else:
+        dashboard = None
+
     tasks = [
         asyncio.create_task(bus.run(),               name="event_bus"),
         asyncio.create_task(sentinel_bridge.start(), name="sentinel_bridge"),
@@ -226,6 +234,8 @@ async def main(
         asyncio.create_task(status_reporter.start(), name="status_reporter"),
         asyncio.create_task(tracker_eviction_task(), name="tracker_eviction"),
     ]
+    if dashboard:
+        tasks.append(asyncio.create_task(dashboard.start(), name="dashboard"))
 
     if not monitor_only:
         tasks.append(asyncio.create_task(firewall.start(), name="firewall"))
@@ -265,6 +275,9 @@ if __name__ == "__main__":
     parser.add_argument("--config",         default=None,        help="Config YAML path")
     parser.add_argument("--monitor-only",   action="store_true", help="No firewall rules")
     parser.add_argument("--no-root-checks", action="store_true", help="Skip root check (dev)")
+    parser.add_argument("--dashboard",      action="store_true", default=True, help="Enable threat dashboard (default: on)")
+    parser.add_argument("--dashboard-port", type=int, default=8888, help="Dashboard port (default: 8888)")
+    parser.add_argument("--no-dashboard",   action="store_true", help="Disable dashboard")
     args = parser.parse_args()
 
     asyncio.run(main(
