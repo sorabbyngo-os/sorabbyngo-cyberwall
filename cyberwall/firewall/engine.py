@@ -131,13 +131,18 @@ class AuditLogger:
 
     def __init__(self, path: Path = AUDIT_LOG):
         self._path = path
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            self._f = open(path, "a", buffering=1)  # line-buffered
-            logger.info(f"Audit log: {path}")
-        except Exception as e:
-            logger.warning(f"Audit log unavailable ({e}) — logging to stderr only")
-            self._f = None
+        self._f = None
+        for candidate in [path, Path("/tmp/cyberwall-audit.jsonl")]:
+            try:
+                candidate.parent.mkdir(parents=True, exist_ok=True)
+                self._f = open(candidate, "a", buffering=1)
+                self._path = candidate
+                logger.info(f"Audit log: {candidate}")
+                break
+            except Exception:
+                continue
+        if self._f is None:
+            logger.warning("Audit log unavailable — all paths failed")
 
     def write(self, action: str, **kwargs):
         record = {
