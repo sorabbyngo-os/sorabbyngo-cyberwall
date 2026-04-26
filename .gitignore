@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 configs/cyberwall.yaml
 sorabbyngo-cyberwall/
+.coverage
