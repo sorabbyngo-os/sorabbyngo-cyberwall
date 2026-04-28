@@ -269,6 +269,175 @@ nats pub sorabbyngo.cyberwall.policy.reload ""
 
 ---
 
+
+---
+
+## Advanced Security Capabilities
+
+### Post-Quantum Encryption (CRYSTALS-Kyber + Dilithium)
+
+| Algorithm | Standard | Purpose | Security Level |
+|---|---|---|---|
+| ML-KEM (Kyber1024) | NIST FIPS 203 | Key encapsulation for threat event transport | 256-bit post-quantum |
+| ML-DSA (Dilithium5) | NIST FIPS 204 | NodeID-bound digital signatures on every alert | NIST Level 5 |
+| AES-256-GCM | NIST SP 800-38D | Symmetric encryption of event payloads | 256-bit classical |
+| X25519 + HKDF | RFC 7748 | Classical KEM fallback when liboqs unavailable | 128-bit classical |
+| HMAC-SHA3-256 | FIPS 202 | Signature fallback when liboqs unavailable | 256-bit classical |
+
+**How it works:** Every threat event is encrypted with Kyber1024 (key encapsulation) +
+AES-256-GCM (payload). Every alert published to NATS carries a Dilithium5 signature
+bound to the node's hardware identity (Sorabbyngo NodeID). Resistant to quantum
+adversaries harvesting encrypted traffic today to decrypt later.
+
+**Fallback:** When liboqs C library is not installed, the system automatically uses
+X25519 + AES-256-GCM + HMAC-SHA3-256 — classical crypto that's still strong today.
+
+**Install liboqs:**
+```bash
+sudo apt-get install cmake ninja-build libssl-dev
+git clone --depth 1 https://github.com/open-quantum-safe/liboqs.git
+cd liboqs && cmake -GNinja -DBUILD_SHARED_LIBS=ON . && ninja && sudo ninja install
+sudo ldconfig
+```
+
+---
+
+### Blockchain Audit Ledger (SHA3-256 + Merkle Tree)
+
+| Component | Algorithm | Purpose |
+|---|---|---|
+| Block hash | SHA3-256 | Tamper-evident chaining — each block commits to all predecessors |
+| Proof-of-work | SHA3-256 with difficulty prefix | Proves computational effort, prevents retroactive rewriting |
+| Merkle tree | SHA3-256 binary tree | O(log n) inclusion proofs — verify any event without full chain |
+| Chain linkage | prev_hash field | Every block references predecessor — break one, invalidate all |
+
+**Structure:** Each block contains: `{index, timestamp, node_id, event_type, data,
+prev_hash, nonce, hash, merkle_root}`. The chain hash is:
+`SHA3-256(prev_hash + index + timestamp + node_id + data + nonce)`.
+
+**Merkle proofs:** Every batch of 64 events gets a Merkle root. Anyone can verify that
+a specific event was recorded without downloading the full chain.
+
+**Audit:** Run `ledger.verify()` to check full chain integrity in O(n) time. Export
+the JSONL file to any third party — they can verify every event independently.
+
+---
+
+### Polymorphic Malware Reverse Engineering
+
+| Technique | What it detects | Implementation |
+|---|---|---|
+| Shannon entropy analysis | Packed / encrypted / polymorphic code | Sliding window entropy over 256-byte blocks |
+| Entropy profiling | Encrypted sections within binaries | Per-region entropy map |
+| NOP sled detection | Shellcode injection staging | Pattern match: x86/ARM NOP variants |
+| String extraction | Suspicious imports, C2 URLs, crypto APIs | Printable ASCII extraction + keyword match |
+| Disassembly analysis | Control flow obfuscation | Capstone (x86_64/ARM/ARM64) |
+| Jump density analysis | Opaque predicates, spaghetti code | Ratio of jmp/call to total instructions |
+| XOR density analysis | Decryption loops, key scheduling | XOR instruction frequency |
+| Invariant core extraction | Mutation-resistant payload bytes | Low-entropy block selection |
+| YARA rule generation | Auto-signature from invariant bytes | Hex string rules from extracted core |
+| Variant diffing | Same-family detection across mutations | 4-gram Jaccard similarity + entropy drift |
+
+**Polymorphic detection scoring:** A sample is flagged as polymorphic when:
+entropy > 7.0 (+3) + is_packed (+2) + obfuscation_score > 5 (+3) + NOP sleds (+1) + suspicious imports > 3 (+1) ≥ 5.
+
+**Supported architectures:** x86, x86-64, ARM, ARM64 (via Capstone disassembler).
+
+---
+
+### Tor C2 Traffic Detection
+
+| Method | What it catches | Data source |
+|---|---|---|
+| Exit node IP list | Direct connections from Tor exit nodes | check.torproject.org bulk list (updated every 4h) |
+| Known CIDR ranges | torservers.net, Scaleway exits, tor.in.ua | Hardcoded — updated in releases |
+| TLS fingerprinting | Tor's distinctive ClientHello cipher suite | Tor cipher suite overlap analysis |
+| Tor cell detection | Fixed 514-byte cell-aligned traffic | Traffic size pattern matching |
+| .onion DNS leakage | Malware attempting to resolve .onion domains | Regex on DNS query payloads |
+| Tor port detection | Direct SOCKS5 proxy / relay connections | Ports: 9001, 9030, 9050, 9051, 9150 |
+
+**Why this matters for Africa:** XMRig variants targeting African edge infrastructure
+increasingly route mining pool connections over Tor to evade ISP-level blocking.
+Ransomware C2 on African hospital networks uses Tor to hide the operator.
+This detector catches both without blocking legitimate Tor browser usage.
+
+**What we do NOT do:** We do not run a Tor node, relay, or exit. We do not block
+all Tor traffic. We detect MALWARE using Tor for C2 — flagged as HIGH threat,
+routed to Sentinel for operator review.
+
+---
+
+## Cryptographic Algorithms Reference
+Encryption layer (outbound alerts):
+Primary:  ML-KEM-1024 (Kyber) + AES-256-GCM
+NIST FIPS 203 + SP 800-38D
+Fallback: X25519 (ECDH) + AES-256-GCM
+RFC 7748 + NIST SP 800-38D
+KDF:      SHA3-256 (shared secret → AES key)
+Signature layer (event integrity):
+Primary:  ML-DSA-87 (Dilithium5)
+NIST FIPS 204
+Fallback: HMAC-SHA3-256
+FIPS 202 + RFC 2104
+Audit chain:
+Block hash:  SHA3-256 (FIPS 202)
+Merkle tree: SHA3-256 binary tree
+PoW:         SHA3-256 with difficulty-2 prefix
+File scanning:
+Hash lookup: SHA-256 (FIPS 180-4)
+Patterns:    PCRE + YARA
+RE engine:   Capstone disassembler + entropy analysis
+Transport:
+NATS JetStream over TLS 1.3 (OpenSSL 3.6.1)
+NodeID binding: hardware-derived identifier
+---
+
+## For Future Developers
+
+### Adding a new threat detection module
+
+```python
+# 1. Create cyberwall/your_module/detector.py
+# 2. Subscribe to EventBus:
+bus.subscribe("*", your_handler)
+# 3. Publish threat events:
+await bus.publish(ThreatEvent(
+    source="your_module",
+    threat_type="your_threat",
+    level=ThreatLevel.HIGH,
+    score=7.5,
+    description="...",
+))
+# 4. Wire into cyberwall_daemon.py main()
+# 5. Add tests in tests/unit/
+```
+
+### Extending the blockchain ledger
+
+The ledger is append-only. To add a new event type:
+```python
+await ledger.append("your_event_type", {"key": "value"})
+```
+To verify the full chain at any time:
+```python
+valid, count = ledger.verify()
+proof = ledger.get_proof(block_index)
+assert ledger.verify_proof(proof)
+```
+
+### Upgrading quantum algorithms
+
+When NIST finalizes additional post-quantum algorithms (ML-KEM-512, SLH-DSA),
+update `KYBER_VARIANT` and `DILITHIUM_VARIANT` in `cyberwall/quantum/kyber.py`.
+The ctypes binding works with any algorithm string that liboqs supports.
+Check available algorithms: `python3 -c "import ctypes; ..."`
+
+### Tor exit list maintenance
+
+The exit list auto-updates from `check.torproject.org` every 4 hours.
+To add known Tor CIDR ranges: edit `TOR_KNOWN_CIDR` in `cyberwall/tor/detector.py`.
+To increase detection confidence: extend `TOR_TLS_CIPHERS` with new Tor cipher suites.
+
 ## Part of Sorabbyngo OS
 
 | Repo | Role |

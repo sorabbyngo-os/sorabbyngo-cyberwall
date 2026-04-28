@@ -51,6 +51,10 @@ from cyberwall.malware.deep_scanner import DeepScanner
 from cyberwall.sentinel_bridge.bridge import SentinelBridge
 from cyberwall.ai.analyzer import AIAnalyzer
 from cyberwall.dashboard.server import DashboardServer
+from cyberwall.quantum.kyber import QuantumCrypto
+from cyberwall.blockchain.ledger import BlockchainLedger
+from cyberwall.reverse_engineering.analyzer import PolymorphicAnalyzer
+from cyberwall.tor.detector import TorDetector
 
 BANNER = """
 ╔══════════════════════════════════════════════════════════╗
@@ -184,6 +188,23 @@ async def main(
     # Scoring via middleware — clean, no monkey-patch
     bus.add_middleware(scoring_middleware)
 
+    # ── Post-quantum crypto ────────────────────────────────────────────
+    quantum = QuantumCrypto()
+    logger.info(f"Quantum crypto: {quantum.mode}")
+
+    # ── Blockchain audit ledger ────────────────────────────────────────
+    node_id = policy.get("nats", "url", default="unknown")
+    ledger  = BlockchainLedger(node_id=node_id)
+    valid, count = ledger.verify()
+    logger.info(f"Blockchain ledger: {count} blocks, valid={valid}")
+
+    # ── Polymorphic malware analyzer ───────────────────────────────────
+    re_engine = PolymorphicAnalyzer()
+    logger.info("Polymorphic RE engine ready")
+
+    # ── Tor C2 detector ────────────────────────────────────────────────
+    tor_detector = TorDetector()
+
     # ── Components ────────────────────────────────────────────────────────────
     nats_url     = policy.get("nats", "url", default="nats://localhost:4222")
     firewall     = FirewallEngine(bus, policy)
@@ -241,6 +262,9 @@ async def main(
         tasks.append(asyncio.create_task(firewall.start(), name="firewall"))
         if ebpf.is_active():
             tasks.append(asyncio.create_task(ebpf.start(), name="ebpf"))
+
+    # Start Tor detector (background exit node list updater)
+    tasks.append(asyncio.create_task(tor_detector.start(), name="tor_detector"))
 
     # ── Graceful shutdown ─────────────────────────────────────────────────────
     loop = asyncio.get_event_loop()

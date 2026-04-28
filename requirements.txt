@@ -27,3 +27,11 @@ pytest-cov>=5.0.0
 
 # ── Optional: schema validation ───────────────────────────────────────────────
 # pydantic>=2.0.0            # uncomment to enable full policy schema validation
+
+# ── Advanced security modules ──────────────────────────────────────────────────
+capstone>=5.0.0          # binary disassembly (polymorphic RE)
+stem>=1.8.0              # Tor controller protocol (optional: onion routing)
+# liboqs — installed from source (C library, ctypes binding)
+# Build: see docs/quantum-setup.md
+# When available: Kyber1024 + Dilithium5 (NIST FIPS 203/204)
+# Fallback: X25519 + AES-256-GCM + HMAC-SHA3-256 (always active)
