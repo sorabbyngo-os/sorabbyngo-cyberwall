@@ -36,7 +36,7 @@ import struct
 import time
 import urllib.request
 from pathlib import Path
-from typing import Optional, Set
+from typing import Optional, Set, Tuple
 
 log = logging.getLogger("cyberwall.tor")
 

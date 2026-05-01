@@ -318,6 +318,14 @@ class QuantumCrypto:
         """Generate KEM keypair."""
         return self.kem.keygen()
 
+    def encapsulate(self, public_key: bytes) -> Tuple[bytes, bytes]:
+        """Encapsulate — returns (ciphertext, shared_secret)."""
+        return self.kem.encapsulate(public_key)
+
+    def decapsulate(self, secret_key: bytes, ciphertext: bytes) -> bytes:
+        """Decapsulate — returns shared_secret."""
+        return self.kem.decapsulate(secret_key, ciphertext)
+
     def sign_keygen(self) -> Tuple[bytes, bytes]:
         """Generate DSA keypair for signing."""
         return self.dsa.keygen()

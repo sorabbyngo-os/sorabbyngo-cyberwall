@@ -123,10 +123,10 @@ def verify_merkle_proof(leaf_hash: str, proof: List[Tuple[str, str]], root: str)
     """Verify a Merkle inclusion proof."""
     current = leaf_hash
     for sibling, direction in proof:
-        if direction == "right":
-            current = sha3(current + sibling)
-        else:
+        if direction == "left":
             current = sha3(sibling + current)
+        else:
+            current = sha3(current + sibling)
     return current == root
 
 
@@ -194,8 +194,7 @@ class BlockchainLedger:
 
     def _save_block(self, block: Block):
         with open(self._path, "a") as f:
-            f.write(json.dumps(block.to_dict()) + "
-")
+            f.write(json.dumps(block.to_dict()) + "\n")
 
     # ── Append ────────────────────────────────────────────────────────────────
     async def append(self, event_type: str, data: dict) -> Block:
@@ -252,11 +251,14 @@ class BlockchainLedger:
         if block_index >= len(self._chain):
             return None
         block = self._chain[block_index]
-        # Rebuild the batch this block belongs to
+        # Rebuild the same slice used during append:
+        # append computes merkle BEFORE mining, so the target block uses nonce=0 hash
+        import dataclasses as _dc
+        premined = _dc.replace(block, nonce=0)
         batch_start = max(0, block_index - 63)
-        batch = self._chain[batch_start:block_index + 1]
-        hashes = [b.hash for b in batch]
-        idx_in_batch = block_index - batch_start
+        batch = self._chain[batch_start:block_index]
+        hashes = [b.hash for b in batch] + [premined.compute_hash()]
+        idx_in_batch = len(hashes) - 1
         proof = merkle_proof(hashes, idx_in_batch)
         return {
             "block_index":  block_index,
@@ -267,8 +269,13 @@ class BlockchainLedger:
 
     def verify_proof(self, proof: dict) -> bool:
         """Verify a Merkle inclusion proof."""
+        # Merkle tree was built with pre-mine hash (nonce=0), so use that as leaf
+        block = self._chain[proof["block_index"]]
+        import dataclasses as _dc
+        premined = _dc.replace(block, nonce=0)
+        leaf = premined.compute_hash()
         return verify_merkle_proof(
-            proof["block_hash"],
+            leaf,
             [(h, d) for h, d in proof["proof"]],
             proof["merkle_root"],
         )

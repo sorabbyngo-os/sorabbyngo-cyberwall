@@ -86,7 +86,7 @@ def entropy_verdict(entropy: float) -> Tuple[str, bool, bool]:
     """
     if entropy < 5.0:
         return "normal",    False, False
-    elif entropy < 6.5:
+    elif entropy < 5.4:
         return "suspicious", False, False
     elif entropy < 7.2:
         return "packed",     True,  False
