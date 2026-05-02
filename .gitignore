@@ -5,3 +5,6 @@ __pycache__/
 configs/cyberwall.yaml
 sorabbyngo-cyberwall/
 .coverage
+.coverage
+*.bak
+deploy_new_features.py

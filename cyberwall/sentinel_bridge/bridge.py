@@ -16,6 +16,7 @@ except ImportError:
 
 from cyberwall.core.event_bus import EventBus, ThreatEvent, ThreatLevel
 from cyberwall.core.policy_engine import PolicyEngine
+from cyberwall.audit import get_writer as _get_audit_writer
 
 logger = logging.getLogger("cyberwall.sentinel_bridge")
 
@@ -37,6 +38,7 @@ class SentinelBridge:
         self._running = False
         self._node_id = self._read_node_id()
 
+        self._audit = _get_audit_writer(self._node_id)
         # Subscribe to all events
         bus.subscribe("*", self.on_event)
 

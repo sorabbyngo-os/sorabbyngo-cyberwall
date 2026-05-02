@@ -33,6 +33,7 @@ except ImportError:
 
 from cyberwall.core.event_bus import EventBus, ThreatEvent, ThreatLevel
 from cyberwall.core.policy_engine import PolicyEngine
+from cyberwall.audit import get_writer as _get_audit_writer
 
 logger = logging.getLogger("cyberwall.firewall.engine")
 
@@ -189,7 +190,7 @@ class FirewallEngine:
         # Rate limiter
         rate_cfg = policy.get("firewall", "rate_limit", default={})
         self._rate  = RateLimiter(rate_cfg)
-        self._audit = AuditLogger()
+        self._audit = _get_audit_writer()
         self._running = False
 
         # Load static blocks from policy
@@ -271,7 +272,7 @@ table inet {NFT_TABLE} {{
         ok = await self._nft_run(f"nft -f -", stdin=ruleset)
         if ok:
             logger.info("Base nftables ruleset applied (SET-based blocking active)")
-            self._audit.write("ruleset_applied", interface=iface, ports=ports)
+            self._audit.ruleset_applied(interface=iface, ports=ports)
         else:
             logger.warning("nftables unavailable — monitor-only mode")
 
@@ -303,10 +304,7 @@ table inet {NFT_TABLE} {{
             f'{{ {ip} timeout {ttl}s }}'
         )
 
-        self._audit.write(
-            "ip_blocked",
-            ip=ip, reason=reason, level=level.name, ttl_seconds=ttl
-        )
+        self._audit.ip_blocked(ip=ip, reason=reason, level=level.name, ttl=ttl)
 
         # Publish block event
         event = ThreatEvent(
@@ -328,7 +326,7 @@ table inet {NFT_TABLE} {{
             f'nft delete element inet {NFT_TABLE} {NFT_BLOCK_SET} {{ {ip} }}',
             ignore_error=True,
         )
-        self._audit.write("ip_unblocked", ip=ip)
+        self._audit.ip_unblocked(ip=ip)
         logger.info(f"Unblocked {ip}")
 
     # ── Rate limiting (used by firewall consumers) ────────────────────────────
