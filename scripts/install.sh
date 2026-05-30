@@ -311,7 +311,7 @@ if [[ "$SKIP_SERVICE" == "false" ]]; then
     cat > /etc/systemd/system/sorabbyngo-cyberwall.service << SVCFILE
 [Unit]
 Description=Sorabbyngo Cyberwall — AI-native Firewall and Malware Defence
-Documentation=https://github.com/sorabbyngo-Labs/sorabbyngo-cyberwall
+Documentation=https://github.com/citadel-sec/sorabbyngo-cyberwall
 After=network.target
 Wants=network-online.target
 

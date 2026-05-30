@@ -442,13 +442,13 @@ To increase detection confidence: extend `TOR_TLS_CIPHERS` with new Tor cipher s
 
 | Repo | Role |
 |---|---|
-| [sorabbyngo-os](https://github.com/sorabbyngo-Labs/sorabbyngo-os) | Kernel (Linux 6.19.10) |
-| [sentinel-os](https://github.com/sorabbyngo-Labs/sentinel-os) | Security operations OS |
-| [security](https://github.com/sorabbyngo-Labs/security) | 7-ring defence architecture |
-| [dmz](https://github.com/sorabbyngo-Labs/dmz) | One-way wall — PRIME isolation |
-| [cml](https://github.com/sorabbyngo-Labs/cml) | Safety and audit layer |
-| [byngonet](https://github.com/sorabbyngo-Labs/byngonet) | Secure mesh protocol |
-| [novela](https://github.com/sorabbyngo-Labs/novela) | Africa-first AI health platform |
+| [sorabbyngo-os](https://github.com/sorabbyngo-os/sorabbyngo-os) | Kernel (Linux 6.19.10) |
+| [sentinel-os](https://github.com/sorabbyngo-os/sentinel-os) | Security operations OS |
+| [security](https://github.com/citadel-sec/security) | 7-ring defence architecture |
+| [dmz](https://github.com/sorabbyngo-os/dmz) | One-way wall — PRIME isolation |
+| [cml](https://github.com/sorabbyngo-os/cml) | Safety and audit layer |
+| [byngonet](https://github.com/sorabbyngo-os/byngonet) | Secure mesh protocol |
+| [novela](https://github.com/sorabbyngo-os/novela) | Africa-first AI health platform |
 
 Cyberwall also runs standalone on any Ubuntu 20.04+ / Debian 11+ system.
 
